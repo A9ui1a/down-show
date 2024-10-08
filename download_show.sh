@@ -33,6 +33,10 @@ m3u8_trans() {
     file_name=$2
     wget -O "$2.tm" $m3u8_url
     rm -rf "$2.m"
+
+    url_ts=$(echo $m3u8_url | sed -E 's/(https:\/\/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]+\/).*/\1/')
+    echo -e $url_ts
+
     # init
     temp_storage=""
     write_mode=true
@@ -76,6 +80,9 @@ m3u8_trans() {
             fi
             temp_storage+="$line"$'\n'
         else
+            if [[ $line == *".ts" && $line != http* ]]; then
+                line=$url_ts$line
+    	    fi
             if $write_mode; then
                 echo "$line" >>"$2.m"
             else
@@ -126,7 +133,8 @@ get_json_data() {
     #根據$區隔
     for i in "${urls[@]}"; do
         tmp_url="${i#*$}"
-        target_number=$(echo "$i" | grep -oE '^[0-9]+')
+        get_num_str=$(echo $i | sed -E 's/(.+)\$.*/\1/')
+        target_number=$(echo "$get_num_str" | grep -oE '[0-9]+')
         echo -e "e=>$target_number"
         formatted_number=$(printf "%02d" "$((10#$target_number))")
         number="EP$formatted_number"
