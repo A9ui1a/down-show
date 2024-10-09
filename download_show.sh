@@ -114,7 +114,7 @@ download_video() {
 
     DOWNLOAD_FILE="$DOWNLOAD_DIR/$3.mkv"
     trap 'if [ -f "$DOWNLOAD_FILE" ]; then rm -rf "$DOWNLOAD_FILE"; curl --location "$TELEGRAM_URL/sendMessage" --header "Content-Type: application/json" --data "{\"chat_id\":\"894882582\",\"text\":\"$VIDEO_NAME $3 download failed\"}"; fi' ERR
-    ffmpeg -protocol_whitelist file,http,https,tcp,tls,crypto -i "$3.m" -c:v hevc_nvenc -cq 23 -preset p7 -vsync 0 -rc vbr -maxrate 10M -c:a copy -c:s copy "$DOWNLOAD_FILE"
+    ffmpeg -protocol_whitelist file,http,https,tcp,tls,crypto -i "$3.m" -c:v hevc_nvenc -cq 23 -preset p7 -rc vbr -maxrate 10M -c:a copy -c:s copy "$DOWNLOAD_FILE"
     #ffmpeg -protocol_whitelist file,http,https,tcp,tls,crypto  -i "$3.m" -c:v hevc_nvenc -cq 51 -preset p7 -ss 0 -t 60 -c:a copy -c:s copy "$DOWNLOAD_FILE"
     trap - ERR
 }
