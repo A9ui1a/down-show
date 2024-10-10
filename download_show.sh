@@ -59,7 +59,7 @@ m3u8_trans() {
                 not_write=false
             fi
             split_ext=true
-        elif [[ "$line" == \#EXTINF:* ]] && ! $write_mode && ! $not_write ; then
+        elif [[ "$line" == \#EXTINF:* ]] && ! $write_mode ; then
             # 检查是否有 #EXTINF:3.366667
             if [[ "$line" == "#EXTINF:3.366667," ]]; then
                 not_write=true
