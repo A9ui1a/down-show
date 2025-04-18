@@ -27,6 +27,27 @@ check_filename() {
     done
 }
 
+get_real_extinf_time() {
+    local url=$1
+    real_time=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$url")
+    echo $real_time
+}
+
+deviation() {
+ local num1=$1
+ local num2=$2
+  if [ $(echo "$num1 > $num2" | bc) -eq 1 ]; then
+    percent=$(echo "scale=2; ($num1 - $num2) / $num2 *100" | bc)
+    echo $percent
+  elif [ $(echo "$num1 < $num2" | bc) -eq 1 ]; then
+    percent=$(echo "scale=2; ($num2 - $num1) / $num1 *100" | bc)
+    echo $percent
+  else
+    echo 0
+  fi
+}
+
+
 #處理m3u8
 m3u8_trans() {
     m3u8_url=$1
@@ -45,6 +66,10 @@ m3u8_trans() {
     maybe_no_write=true
     split_ext=false
     while IFS= read -r line; do
+        echo -e "readline=>$line"
+        if [[ "$line" == \#EXTINF:* ]] ; then
+          time_value=$(echo "$line" | grep -oP '(?<=#EXTINF:)\d+(\.\d+)?')
+        fi
         # 检查是否遇到 #EXT-X-DISCONTINUITY
         if [[ "$line" == "#EXT-X-DISCONTINUITY" ]]; then
             if $write_mode; then
@@ -66,23 +91,23 @@ m3u8_trans() {
                 split_ext=false
                 continue
             fi
-
-            #get EXTINF time
-            time_value=$(echo "$line" | grep -oP '(?<=#EXTINF:)\d+\.\d+')
-            if [ "$time_value" != "$last_extinf" ] && $split_ext; then
-                last_extinf="$time_value"
-                split_ext=false
-            elif [ "$time_value" != "$last_extinf" ]; then
-                maybe_no_write=false
-                not_write=false
-            elif [ "$time_value" == "$last_extinf" ] && $maybe_no_write; then
-                not_write=true
-            fi
             temp_storage+="$line"$'\n'
         else
-            if [[ $line == *".ts" && $line != http* ]]; then
+            if [[ $line == *".ts"* && $line != http* ]]; then
                 line=$url_ts$line
-    	    fi
+    	      fi
+    	      if [[ $line == *".ts"* ]]; then
+               realTime=$(get_real_extinf_time $line)
+               echo -e "$realTime , $time_value"
+               real_time_num=$(echo "$realTime" | bc)
+               time_value_num=$(echo "$time_value" | bc)
+               compare_value=$(deviation $realTime $time_value)
+               echo -e $compare_value
+               if [ $(echo "$compare_value > 5" | bc) -eq 1 ] && [ "$not_write" != true ]; then
+                   not_write=true
+               fi
+    	      fi
+#
             if $write_mode; then
                 echo "$line" >>"$2.m"
             else
@@ -143,5 +168,5 @@ get_json_data() {
     done
 
 }
-cd $DOWNLOAD_DIR
+cd "$DOWNLOAD_DIR"
 get_json_data $URL
